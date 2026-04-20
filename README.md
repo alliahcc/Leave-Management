@@ -6,7 +6,7 @@ A robust, production-ready backend for managing employee leave requests. Built w
 **Key Features**:
 - Secure JWT authentication with role-based access (`admin` / `employee`)
 - Employee leave request creation, viewing, and cancellation
-- Full admin dashboard: user management, leave approvals, soft-delete/restore/trash, and statistics
+- Full admin dashboard: user management, leave approvals, and soft-delete/restore/trash
 - Automatic leave balance deduction on approval
 - Strong password policy, input validation (Joi), secure headers (Helmet), and CORS
 - Interactive Swagger documentation (YAML-based)

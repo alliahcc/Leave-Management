@@ -19,7 +19,7 @@ export const createUser = [
                 });
             }
 
-            // ✅ No manual hashing — pre-save hook will handle it
+            // No manual hashing — pre-save hook will handle it
             const user = new User(req.body);
             await user.save();
 
@@ -79,10 +79,10 @@ export const softDeleteEmployee = async(req, res) => {
             req.params.id, { isDeleted: true, deletedAt: new Date() }, { new: true }
         );
         if (!user) return res.status(404).json({ success: false, statusCode: 404, message: 'Employee not found' });
-        res.json({ success: true, statusCode: 200, message: 'Employee soft-deleted' });
+        res.json({ success: true, statusCode: 200, message: 'Employee successfully removed' });
     } catch (err) {
-        console.error('Error soft-deleting employee:', err.message);
-        res.status(500).json({ success: false, statusCode: 500, message: 'Server error while deleting employee' });
+        console.error('Error removing employee:', err.message);
+        res.status(500).json({ success: false, statusCode: 500, message: 'Server error while removing an employee' });
     }
 };
 

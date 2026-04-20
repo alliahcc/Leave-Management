@@ -47,4 +47,13 @@ export const statusUpdateSchema = Joi.object({
             'any.only': 'Status must be either approved or rejected',
             'any.required': 'Status is required',
         }),
+
+    remarks: Joi.string()
+        .min(3)
+        .max(255)
+        .required()
+        .messages({
+            'any.required': 'Remarks are required',
+            'string.empty': 'Remarks cannot be empty',
+        }),
 });
