@@ -187,7 +187,7 @@ All protected routes (except login) require a valid `Bearer <token>`.
 | Method | Endpoint                          | Description                       | Protected |
 |--------|-----------------------------------|-----------------------------------|-----------|
 | GET    | `/employee/employees/:id`         | Get employee by ID                | Yes       |
-| GET    | `/employee/leaves`                | Get own leaves                    | Yes       |
+| GET    | `/employee/leaves/my`             | Get leave history                 | Yes       |
 | POST   | `/employee/leaves`                | Create leave request              | Yes       |
 | PATCH  | `/employee/leaves/:id/cancel`     | Cancel pending leave              | Yes       |
 
