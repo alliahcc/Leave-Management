@@ -88,19 +88,34 @@ export const createLeave = [
 
 export const cancelLeave = async(req, res) => {
     try {
-        const leave = await Leave.findOne({ _id: req.params.id, employee: req.user.id });
+        // Safety: ensure we have a valid user from auth middleware
+        if (!req.user || !req.user.id) {
+            return res.status(401).json({
+                success: false,
+                statusCode: 401,
+                message: 'Authentication required',
+            });
+        }
+
+        const leave = await Leave.findOne({
+            _id: req.params.id,
+            employee: req.user.id,
+            isTrashed: false, // don't allow cancelling trashed leaves
+        });
+
         if (!leave) {
             return res.status(404).json({
                 success: false,
                 statusCode: 404,
-                message: 'Leave not found',
+                message: 'Leave not found or you do not have permission to cancel it',
             });
         }
+
         if (leave.status !== 'pending') {
             return res.status(400).json({
                 success: false,
                 statusCode: 400,
-                message: 'Only pending leaves can be cancelled',
+                message: `Only pending leaves can be cancelled. Current status: ${leave.status}`,
             });
         }
 
@@ -115,6 +130,15 @@ export const cancelLeave = async(req, res) => {
         });
     } catch (err) {
         console.error('Error cancelling leave:', err.message);
-        res.status(500).json({ success: false, statusCode: 500, message: 'Server error while cancelling leave' });
+        // Extra dev logging to help future debugging
+        if (process.env.NODE_ENV === 'development') {
+            console.error(err.stack);
+        }
+
+        res.status(500).json({
+            success: false,
+            statusCode: 500,
+            message: 'Server error while cancelling leave',
+        });
     }
 };

@@ -38,11 +38,12 @@ leaveSchema.virtual('leaveDays').get(function() {
 });
 
 // Pre-save validation
-leaveSchema.pre('save', function(next) {
+leaveSchema.pre('save', async function() {
+    // Validate date range
     if (this.endDate < this.startDate) {
-        return next(new Error('End date cannot be before start date'));
+        throw new Error('End date cannot be before start date');
     }
-    next();
+    // You can add more pre-save logic here in the future (e.g. auto-set dates, etc.)
 });
 
 leaveSchema.set('toJSON', { virtuals: true });

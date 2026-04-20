@@ -9,11 +9,13 @@ import {
 
 const router = Router();
 
-router.use(authMiddleware);
+router.use(authMiddleware); // ← only auth, no roleMiddleware here
 
 router.get('/employees/:id', getEmployeeById);
 router.get('/leaves/my', getMyLeaves);
 router.post('/leaves', createLeave);
+
+// FIXED: clean handler, no validate middleware (cancel has no request body)
 router.patch('/leaves/:id/cancel', cancelLeave);
 
 export default router;
