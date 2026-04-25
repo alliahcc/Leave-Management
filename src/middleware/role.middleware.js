@@ -1,3 +1,5 @@
+// src/middleware/role.middleware.js
+
 const roleMiddleware = (roles = []) => {
     return (req, res, next) => {
         try {
@@ -6,6 +8,19 @@ const roleMiddleware = (roles = []) => {
                     success: false,
                     statusCode: 401,
                     message: 'Unauthorized: no user role found',
+                });
+            }
+
+            // Block deleted or trashed accounts
+            if (req.user.isDeleted || req.user.isTrashed) {
+                return res.status(403).json({
+                    success: false,
+                    statusCode: 403,
+                    message: 'Access denied: account is inactive',
+                    isDeleted: req.user.isDeleted,
+                    deletedAt: req.user.deletedAt,
+                    isTrashed: req.user.isTrashed,
+                    trashedAt: req.user.trashedAt,
                 });
             }
 
@@ -18,6 +33,7 @@ const roleMiddleware = (roles = []) => {
                     success: false,
                     statusCode: 403,
                     message: 'Access denied: insufficient permissions',
+                    role: req.user.role,
                 });
             }
 

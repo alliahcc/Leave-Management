@@ -5,17 +5,29 @@ import {
     getMyLeaves,
     createLeave,
     cancelLeave,
+    // new handlers for soft-delete/restore
+    softDeleteMyLeave,
+    restoreMyLeave,
 } from '../controllers/employee.controller.js';
 
 const router = Router();
 
-router.use(authMiddleware); // ← only auth, no roleMiddleware here
+router.use(authMiddleware); // all employee routes require authentication
 
+// === EMPLOYEE PROFILE ===
 router.get('/employees/:id', getEmployeeById);
+
+// === LEAVE MANAGEMENT ===
 router.get('/leaves/my', getMyLeaves);
 router.post('/leaves', createLeave);
 
-// FIXED: clean handler, no validate middleware (cancel has no request body)
+// Cancel a pending leave
 router.patch('/leaves/:id/cancel', cancelLeave);
+
+// Soft-delete a leave (employee can move their own leave to trash)
+router.patch('/leaves/:id/soft-delete', softDeleteMyLeave);
+
+// Restore a soft-deleted leave
+router.patch('/leaves/:id/restore', restoreMyLeave);
 
 export default router;

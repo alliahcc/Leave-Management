@@ -6,14 +6,112 @@ info:
 servers:
   - url: http://localhost:5000/api/v1
     description: Development server
+
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        lastName:
+          type: string
+        department:
+          type: string
+        position:
+          type: string
+        contact:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+        role:
+          type: string
+          enum: [employee, admin]
+        leaveBalance:
+          type: integer
+          default: 20
+        isTrashed:
+          type: boolean
+          default: false
+        trashedAt:
+          type: string
+          format: date-time
+          nullable: true
+        isDeleted:
+          type: boolean
+          default: false
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Leave:
+      type: object
+      properties:
+        id:
+          type: string
+        employee:
+          type: string
+        employeeName:
+          type: string
+        employeeLastName:
+          type: string
+        leaveType:
+          type: string
+          enum: [vacation, sick, personal, other]
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        duration:
+          type: integer
+        reason:
+          type: string
+        status:
+          type: string
+          enum: [pending, approved, rejected, cancelled]
+        isTrashed:
+          type: boolean
+          default: false
+        trashedAt:
+          type: string
+          format: date-time
+          nullable: true
+        isDeleted:
+          type: boolean
+          default: false
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
 security:
   - bearerAuth: []
+
 tags:
   - name: Auth
     description: Authentication endpoints
@@ -43,6 +141,10 @@ paths:
       responses:
         '200':
           description: Successful login
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
         '401':
           description: Invalid credentials
 
@@ -55,6 +157,10 @@ paths:
       responses:
         '200':
           description: Current user details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
         '404':
           description: User not found
 
@@ -98,6 +204,10 @@ paths:
       responses:
         '200':
           description: Employee details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
         '403':
           description: Access denied
         '404':
@@ -112,11 +222,17 @@ paths:
       responses:
         '200':
           description: Successfully retrieved leave history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Leave'
         '401':
-          description: Unauthorized - missing or invalid token
+          description: Unauthorized
         '500':
-          description: Server error while fetching leave history
-  
+          description: Server error
+
   /employee/leaves:
     post:
       summary: Create leave request
@@ -128,22 +244,14 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                leaveType:
-                  type: string
-                  enum: [vacation, sick, personal, other]
-                startDate:
-                  type: string
-                  format: date
-                endDate:
-                  type: string
-                  format: date
-                reason:
-                  type: string
+              $ref: '#/components/schemas/Leave'
       responses:
         '201':
           description: Leave request created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Leave'
         '400':
           description: Insufficient leave balance
 
@@ -176,20 +284,14 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                name:
-                  type: string
-                email:
-                  type: string
-                password:
-                  type: string
-                role:
-                  type: string
-                  enum: [employee, admin]
+              $ref: '#/components/schemas/User'
       responses:
         '201':
           description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
         '400':
           description: Email already exists
 
@@ -202,6 +304,12 @@ paths:
       responses:
         '200':
           description: List of employees
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
 
   /admin/stats:
     get:
@@ -276,6 +384,12 @@ paths:
       responses:
         '200':
           description: List of leaves
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Leave'
 
   /admin/leaves/{id}:
     get:
@@ -292,6 +406,10 @@ paths:
       responses:
         '200':
           description: Leave request details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Leave'
         '404':
           description: Leave not found
         '500':
@@ -318,18 +436,69 @@ paths:
               properties:
                 status:
                   type: string
-                  enum: [approved, rejected]
+                  enum: [pending, approved, rejected, cancelled]
+                remarks:
+                  type: string
+                  example: "Approved due to valid medical certificate"
       responses:
         '200':
           description: Leave status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Leave'
         '400':
           description: Only pending leaves can be updated
         '404':
           description: Leave not found
 
+  /admin/leaves/{id}/soft-delete:
+    patch:
+      summary: Soft delete leave (mark isDeleted + deletedAt)
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Leave soft-deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Leave'
+        '404':
+          description: Leave not found
+
+  /admin/leaves/{id}/restore-soft:
+    patch:
+      summary: Restore soft-deleted leave (reset isDeleted + deletedAt)
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Leave restored from soft-delete
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Leave'
+        '404':
+          description: Leave not found
+
   /admin/leaves/{id}/trash:
     patch:
-      summary: Move leave to trash
+      summary: Move leave to trash (mark isTrashed + trashedAt)
       tags: [Admin]
       security:
         - bearerAuth: []
@@ -342,12 +511,16 @@ paths:
       responses:
         '200':
           description: Leave trashed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Leave'
         '404':
           description: Leave not found
 
   /admin/leaves/{id}/restore:
     patch:
-      summary: Restore leave
+      summary: Restore trashed leave (reset isTrashed + trashedAt)
       tags: [Admin]
       security:
         - bearerAuth: []
@@ -360,6 +533,10 @@ paths:
       responses:
         '200':
           description: Leave restored
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Leave'
         '404':
           description: Leave not found
 

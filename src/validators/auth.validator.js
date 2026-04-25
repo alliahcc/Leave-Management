@@ -10,10 +10,10 @@ export const loginSchema = Joi.object({
             'any.required': 'Email is required',
         }),
     password: Joi.string()
-        .min(6)
+        .min(8) // enforce model requirement
         .required()
         .messages({
-            'string.min': 'Password must be at least 6 characters long',
+            'string.min': 'Password must be at least 8 characters long',
             'any.required': 'Password is required',
         }),
 });
@@ -25,7 +25,7 @@ export const changePasswordSchema = Joi.object({
             'any.required': 'Current password is required',
         }),
     newPassword: Joi.string()
-        .min(8) // enforce stronger minimum length
+        .min(8)
         .pattern(new RegExp('^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[!@#$%^&*]).+$'))
         // at least 1 uppercase, 1 lowercase, 1 digit, 1 special character
         .required()

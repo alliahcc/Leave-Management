@@ -14,6 +14,7 @@ export const login = [
             const user = await User.findOne({
                 email: email.toLowerCase().trim(),
                 isDeleted: false,
+                isTrashed: false,
             });
 
             if (!user) {
@@ -53,9 +54,18 @@ export const login = [
                 user: {
                     id: user._id,
                     name: user.name,
+                    lastName: user.lastName,
+                    department: user.department,
+                    position: user.position,
+                    contact: user.contact,
                     email: user.email,
                     role: user.role,
                     leaveBalance: user.leaveBalance,
+                    isTrashed: user.isTrashed,
+                    trashedAt: user.trashedAt,
+                    isDeleted: user.isDeleted,
+                    deletedAt: user.deletedAt,
+                    createdAt: user.createdAt,
                 },
             });
         } catch (err) {
@@ -73,7 +83,7 @@ export const login = [
 export const getMe = async(req, res) => {
     try {
         const user = await User.findById(req.user.id).select('-password');
-        if (!user || user.isDeleted) {
+        if (!user || user.isDeleted || user.isTrashed) {
             return res.status(404).json({
                 success: false,
                 statusCode: 404,
@@ -83,7 +93,11 @@ export const getMe = async(req, res) => {
         res.json({ success: true, statusCode: 200, user });
     } catch (err) {
         console.error('Error fetching user profile:', err.message);
-        res.status(500).json({ success: false, statusCode: 500, message: 'Server error while fetching profile' });
+        res.status(500).json({
+            success: false,
+            statusCode: 500,
+            message: 'Server error while fetching profile',
+        });
     }
 };
 
@@ -93,7 +107,7 @@ export const changePassword = [
     async(req, res) => {
         try {
             const user = await User.findById(req.user.id);
-            if (!user || user.isDeleted) {
+            if (!user || user.isDeleted || user.isTrashed) {
                 return res.status(404).json({
                     success: false,
                     statusCode: 404,
@@ -120,7 +134,11 @@ export const changePassword = [
             });
         } catch (err) {
             console.error('Error changing password:', err.message);
-            res.status(500).json({ success: false, statusCode: 500, message: 'Server error while changing password' });
+            res.status(500).json({
+                success: false,
+                statusCode: 500,
+                message: 'Server error while changing password',
+            });
         }
     },
 ];

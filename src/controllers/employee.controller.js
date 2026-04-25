@@ -16,7 +16,8 @@ export const getEmployeeById = async(req, res) => {
             });
         }
 
-        const user = await User.findOne({ _id: id, isDeleted: false }).select('-password');
+        const user = await User.findOne({ _id: id, isDeleted: false, isTrashed: false })
+            .select('-password');
         if (!user) {
             return res.status(404).json({
                 success: false,
@@ -35,9 +36,15 @@ export const getEmployeeById = async(req, res) => {
 // === LEAVE MANAGEMENT ===
 export const getMyLeaves = async(req, res) => {
     try {
-        const leaves = await Leave.find({ employee: req.user.id, isTrashed: false })
+        const leaves = await Leave.find({
+                employee: req.user.id,
+                isTrashed: false,
+                isDeleted: false,
+            })
             .sort({ createdAt: -1 })
+            .populate('employee', 'name lastName department position contact email role')
             .lean();
+
         res.json({ success: true, statusCode: 200, leaves });
     } catch (err) {
         console.error('Error fetching leaves:', err.message);
@@ -50,7 +57,7 @@ export const createLeave = [
     async(req, res) => {
         try {
             const employee = await User.findById(req.user.id);
-            if (!employee || employee.isDeleted) {
+            if (!employee || employee.isDeleted || employee.isTrashed) {
                 return res.status(404).json({
                     success: false,
                     statusCode: 404,
@@ -58,8 +65,10 @@ export const createLeave = [
                 });
             }
 
-            const days = calculateLeaveDays(req.body.startDate, req.body.endDate);
-            if (employee.leaveBalance < days) {
+            // FIX: Only grab the number
+            const { duration } = calculateLeaveDays(req.body.startDate, req.body.endDate);
+
+            if (employee.leaveBalance < duration) {
                 return res.status(400).json({
                     success: false,
                     statusCode: 400,
@@ -70,7 +79,16 @@ export const createLeave = [
             const leave = new Leave({
                 ...req.body,
                 employee: req.user.id,
+                employeeName: employee.name,
+                employeeLastName: employee.lastName,
+                duration, // ✅ now a number
+                status: 'pending',
+                isDeleted: false,
+                deletedAt: null,
+                isTrashed: false,
+                trashedAt: null,
             });
+
             await leave.save();
 
             res.status(201).json({
@@ -81,14 +99,17 @@ export const createLeave = [
             });
         } catch (err) {
             console.error('Error creating leave:', err.message);
-            res.status(500).json({ success: false, statusCode: 500, message: 'Server error while creating leave' });
+            res.status(500).json({
+                success: false,
+                statusCode: 500,
+                message: 'Server error while creating leave',
+            });
         }
     },
 ];
 
 export const cancelLeave = async(req, res) => {
     try {
-        // Safety: ensure we have a valid user from auth middleware
         if (!req.user || !req.user.id) {
             return res.status(401).json({
                 success: false,
@@ -100,7 +121,8 @@ export const cancelLeave = async(req, res) => {
         const leave = await Leave.findOne({
             _id: req.params.id,
             employee: req.user.id,
-            isTrashed: false, // don't allow cancelling trashed leaves
+            isTrashed: false,
+            isDeleted: false,
         });
 
         if (!leave) {
@@ -130,15 +152,84 @@ export const cancelLeave = async(req, res) => {
         });
     } catch (err) {
         console.error('Error cancelling leave:', err.message);
-        // Extra dev logging to help future debugging
-        if (process.env.NODE_ENV === 'development') {
-            console.error(err.stack);
-        }
-
         res.status(500).json({
             success: false,
             statusCode: 500,
             message: 'Server error while cancelling leave',
+        });
+    }
+};
+
+// === SOFT DELETE & RESTORE LEAVES (Employee) ===
+export const softDeleteMyLeave = async(req, res) => {
+    try {
+        const leave = await Leave.findOne({
+            _id: req.params.id,
+            employee: req.user.id,
+            isDeleted: false,
+            isTrashed: false,
+        });
+
+        if (!leave) {
+            return res.status(404).json({
+                success: false,
+                statusCode: 404,
+                message: 'Leave not found or already deleted',
+            });
+        }
+
+        leave.isDeleted = true;
+        leave.deletedAt = new Date();
+        await leave.save();
+
+        res.json({
+            success: true,
+            statusCode: 200,
+            message: 'Leave soft-deleted successfully',
+            leave,
+        });
+    } catch (err) {
+        console.error('Error soft-deleting leave:', err.message);
+        res.status(500).json({
+            success: false,
+            statusCode: 500,
+            message: 'Server error while soft-deleting leave',
+        });
+    }
+};
+
+export const restoreMyLeave = async(req, res) => {
+    try {
+        const leave = await Leave.findOne({
+            _id: req.params.id,
+            employee: req.user.id,
+            isDeleted: true,
+        });
+
+        if (!leave) {
+            return res.status(404).json({
+                success: false,
+                statusCode: 404,
+                message: 'Leave not found or not deleted',
+            });
+        }
+
+        leave.isDeleted = false;
+        leave.deletedAt = null;
+        await leave.save();
+
+        res.json({
+            success: true,
+            statusCode: 200,
+            message: 'Leave restored successfully',
+            leave,
+        });
+    } catch (err) {
+        console.error('Error restoring leave:', err.message);
+        res.status(500).json({
+            success: false,
+            statusCode: 500,
+            message: 'Server error while restoring leave',
         });
     }
 };

@@ -6,6 +6,9 @@ const leaveSchema = new mongoose.Schema({
         ref: 'User',
         required: true,
     },
+    employeeName: { type: String, required: true, trim: true }, // Added
+    employeeLastName: { type: String, required: true, trim: true }, // Added
+
     leaveType: {
         type: String,
         enum: ['vacation', 'sick', 'personal', 'other'],
@@ -14,6 +17,7 @@ const leaveSchema = new mongoose.Schema({
     },
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },
+    duration: { type: Number, required: true }, // Added
     reason: { type: String, required: true, trim: true },
     status: {
         type: String,
@@ -22,11 +26,14 @@ const leaveSchema = new mongoose.Schema({
     },
     isTrashed: { type: Boolean, default: false },
     trashedAt: { type: Date, default: null },
+    isDeleted: { type: Boolean, default: false }, // Added
+    deletedAt: { type: Date, default: null }, // Added
 }, { timestamps: true });
 
 // Indexes
 leaveSchema.index({ employee: 1, status: 1 });
 leaveSchema.index({ isTrashed: 1 });
+leaveSchema.index({ isDeleted: 1 }); // Added
 
 // Virtual: leaveDays
 leaveSchema.virtual('leaveDays').get(function() {
@@ -43,7 +50,6 @@ leaveSchema.pre('save', async function() {
     if (this.endDate < this.startDate) {
         throw new Error('End date cannot be before start date');
     }
-    // You can add more pre-save logic here in the future (e.g. auto-set dates, etc.)
 });
 
 leaveSchema.set('toJSON', { virtuals: true });

@@ -19,7 +19,6 @@ export const createUser = [
                 });
             }
 
-            // No manual hashing — pre-save hook will handle it
             const user = new User(req.body);
             await user.save();
 
@@ -30,8 +29,18 @@ export const createUser = [
                 user: {
                     id: user._id,
                     name: user.name,
+                    lastName: user.lastName,
+                    department: user.department,
+                    position: user.position,
+                    contact: user.contact,
                     email: user.email,
                     role: user.role,
+                    leaveBalance: user.leaveBalance,
+                    isTrashed: user.isTrashed,
+                    trashedAt: user.trashedAt,
+                    isDeleted: user.isDeleted,
+                    deletedAt: user.deletedAt,
+                    createdAt: user.createdAt,
                 },
             });
         } catch (err) {
@@ -47,7 +56,9 @@ export const createUser = [
 
 export const getAllEmployees = async(req, res) => {
     try {
-        const employees = await User.find({ isDeleted: false }).select('-password').lean();
+        const employees = await User.find({ isDeleted: false, isTrashed: false })
+            .select('-password')
+            .lean();
         res.json({ success: true, statusCode: 200, employees });
     } catch (err) {
         console.error('Error fetching employees:', err.message);
@@ -58,9 +69,9 @@ export const getAllEmployees = async(req, res) => {
 export const getAdminStats = async(req, res) => {
     try {
         const [totalEmployees, pendingLeaves, approvedLeaves] = await Promise.all([
-            User.countDocuments({ isDeleted: false }),
-            Leave.countDocuments({ status: 'pending', isTrashed: false }),
-            Leave.countDocuments({ status: 'approved', isTrashed: false }),
+            User.countDocuments({ isDeleted: false, isTrashed: false }),
+            Leave.countDocuments({ status: 'pending', isTrashed: false, isDeleted: false }),
+            Leave.countDocuments({ status: 'approved', isTrashed: false, isDeleted: false }),
         ]);
         res.json({
             success: true,
@@ -76,7 +87,7 @@ export const getAdminStats = async(req, res) => {
 export const softDeleteEmployee = async(req, res) => {
     try {
         const user = await User.findByIdAndUpdate(
-            req.params.id, { isDeleted: true, deletedAt: new Date() }, { new: true }
+            req.params.id, { isDeleted: true, deletedAt: new Date() }, { returnDocument: 'after' }
         );
         if (!user) return res.status(404).json({ success: false, statusCode: 404, message: 'Employee not found' });
         res.json({ success: true, statusCode: 200, message: 'Employee successfully removed' });
@@ -89,7 +100,7 @@ export const softDeleteEmployee = async(req, res) => {
 export const restoreEmployee = async(req, res) => {
     try {
         const user = await User.findByIdAndUpdate(
-            req.params.id, { isDeleted: false, deletedAt: null }, { new: true }
+            req.params.id, { isDeleted: false, deletedAt: null }, { returnDocument: 'after' }
         );
         if (!user) return res.status(404).json({ success: false, statusCode: 404, message: 'Employee not found' });
         res.json({ success: true, statusCode: 200, message: 'Employee restored' });
@@ -113,8 +124,8 @@ export const permanentDeleteEmployee = async(req, res) => {
 // === LEAVE MANAGEMENT ===
 export const getAllLeaves = async(req, res) => {
     try {
-        const leaves = await Leave.find({ isTrashed: false })
-            .populate('employee', 'name email')
+        const leaves = await Leave.find({ isTrashed: false, isDeleted: false })
+            .populate('employee', 'name lastName department position contact email role')
             .lean();
         res.json({ success: true, statusCode: 200, leaves });
     } catch (err) {
@@ -123,16 +134,18 @@ export const getAllLeaves = async(req, res) => {
     }
 };
 
-export const viewLeaveRequestDetail = async (req, res) => {
+export const viewLeaveRequestDetail = async(req, res) => {
     try {
-        const leave = await Leave.findById(req.params.id).populate('employee', 'name email').lean();
-        if (!leave) 
-            { return res.status(404).json({ success: false, message: 'Leave not found'}); 
+        const leave = await Leave.findById(req.params.id)
+            .populate('employee', 'name lastName department position contact email role')
+            .lean();
+        if (!leave) {
+            return res.status(404).json({ success: false, message: 'Leave not found' });
         }
         res.json({ success: true, statusCode: 200, leave });
     } catch (err) {
         console.error('Error fetching leave:', err.message);
-        res.status(500).json({ success: false, message: 'Server error'});
+        res.status(500).json({ success: false, message: 'Server error' });
     }
 };
 
@@ -156,6 +169,7 @@ export const updateLeaveStatus = [
                 }
                 leave.employee.leaveBalance -= days;
                 await leave.employee.save();
+                leave.duration = days; // ensure duration is set
             }
 
             await leave.save();
@@ -170,7 +184,7 @@ export const updateLeaveStatus = [
 export const trashLeave = async(req, res) => {
     try {
         const leave = await Leave.findByIdAndUpdate(
-            req.params.id, { isTrashed: true, trashedAt: new Date() }, { new: true }
+            req.params.id, { isTrashed: true, trashedAt: new Date() }, { returnDocument: 'after' }
         );
         if (!leave) return res.status(404).json({ success: false, statusCode: 404, message: 'Leave not found' });
         res.json({ success: true, statusCode: 200, message: 'Leave moved to trash' });
@@ -183,13 +197,39 @@ export const trashLeave = async(req, res) => {
 export const restoreLeave = async(req, res) => {
     try {
         const leave = await Leave.findByIdAndUpdate(
-            req.params.id, { isTrashed: false, trashedAt: null }, { new: true }
+            req.params.id, { isTrashed: false, trashedAt: null }, { returnDocument: 'after' }
         );
         if (!leave) return res.status(404).json({ success: false, statusCode: 404, message: 'Leave not found' });
         res.json({ success: true, statusCode: 200, message: 'Leave restored' });
     } catch (err) {
         console.error('Error restoring leave:', err.message);
         res.status(500).json({ success: false, statusCode: 500, message: 'Server error while restoring leave' });
+    }
+};
+
+export const softDeleteLeave = async(req, res) => {
+    try {
+        const leave = await Leave.findByIdAndUpdate(
+            req.params.id, { isDeleted: true, deletedAt: new Date() }, { returnDocument: 'after' }
+        );
+        if (!leave) return res.status(404).json({ success: false, statusCode: 404, message: 'Leave not found' });
+        res.json({ success: true, statusCode: 200, message: 'Leave soft-deleted' });
+    } catch (err) {
+        console.error('Error soft-deleting leave:', err.message);
+        res.status(500).json({ success: false, statusCode: 500, message: 'Server error while soft-deleting leave' });
+    }
+};
+
+export const restoreSoftDeletedLeave = async(req, res) => {
+    try {
+        const leave = await Leave.findByIdAndUpdate(
+            req.params.id, { isDeleted: false, deletedAt: null }, { returnDocument: 'after' }
+        );
+        if (!leave) return res.status(404).json({ success: false, statusCode: 404, message: 'Leave not found' });
+        res.json({ success: true, statusCode: 200, message: 'Leave restored from soft-delete' });
+    } catch (err) {
+        console.error('Error restoring soft-deleted leave:', err.message);
+        res.status(500).json({ success: false, statusCode: 500, message: 'Server error while restoring soft-deleted leave' });
     }
 };
 

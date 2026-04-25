@@ -2,6 +2,20 @@
 import Joi from 'joi';
 
 export const createLeaveSchema = Joi.object({
+    employeeName: Joi.string()
+        .trim()
+        .required()
+        .messages({
+            'any.required': 'Employee first name is required',
+        }),
+
+    employeeLastName: Joi.string()
+        .trim()
+        .required()
+        .messages({
+            'any.required': 'Employee last name is required',
+        }),
+
     leaveType: Joi.string()
         .valid('vacation', 'sick', 'personal', 'other')
         .required()
@@ -28,6 +42,15 @@ export const createLeaveSchema = Joi.object({
             'any.required': 'End date is required',
         }),
 
+    duration: Joi.number()
+        .min(1)
+        .required()
+        .messages({
+            'number.base': 'Duration must be a number',
+            'number.min': 'Duration must be at least 1 day',
+            'any.required': 'Duration is required',
+        }),
+
     reason: Joi.string()
         .min(10)
         .max(255)
@@ -37,14 +60,26 @@ export const createLeaveSchema = Joi.object({
             'string.max': 'Reason cannot exceed 255 characters',
             'any.required': 'Reason is required',
         }),
+
+    status: Joi.string()
+        .valid('pending', 'approved', 'rejected', 'cancelled')
+        .default('pending')
+        .messages({
+            'any.only': 'Status must be one of: pending, approved, rejected, cancelled',
+        }),
+
+    isTrashed: Joi.boolean().default(false),
+    trashedAt: Joi.date().allow(null),
+    isDeleted: Joi.boolean().default(false),
+    deletedAt: Joi.date().allow(null),
 });
 
 export const statusUpdateSchema = Joi.object({
     status: Joi.string()
-        .valid('approved', 'rejected')
+        .valid('approved', 'rejected', 'cancelled')
         .required()
         .messages({
-            'any.only': 'Status must be either approved or rejected',
+            'any.only': 'Status must be either approved, rejected, or cancelled',
             'any.required': 'Status is required',
         }),
 

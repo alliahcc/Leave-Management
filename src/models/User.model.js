@@ -3,6 +3,11 @@ import bcrypt from 'bcryptjs';
 
 const userSchema = new mongoose.Schema({
     name: { type: String, required: true, trim: true },
+    lastName: { type: String, required: true, trim: true }, // Added
+    department: { type: String, required: true, trim: true }, // Added
+    position: { type: String, required: true, trim: true }, // Added
+    contact: { type: String, required: true, trim: true }, // Added
+
     email: {
         type: String,
         required: true,
@@ -25,12 +30,15 @@ const userSchema = new mongoose.Schema({
         default: 20,
         min: 0,
     },
+    isTrashed: { type: Boolean, default: false }, // Added
+    trashedAt: { type: Date, default: null }, // Added
     isDeleted: { type: Boolean, default: false },
     deletedAt: { type: Date, default: null },
 }, { timestamps: true });
 
 // Indexes
 userSchema.index({ role: 1, isDeleted: 1 });
+userSchema.index({ isTrashed: 1 }); // Added
 
 // Virtuals
 userSchema.virtual('isActive').get(function() {

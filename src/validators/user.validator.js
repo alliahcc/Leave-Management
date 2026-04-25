@@ -13,6 +13,47 @@ export const createUserSchema = Joi.object({
             'any.required': 'Name is required',
         }),
 
+    lastName: Joi.string()
+        .min(2)
+        .max(50)
+        .trim()
+        .required()
+        .messages({
+            'string.min': 'Last name must be at least 2 characters long',
+            'string.max': 'Last name cannot exceed 50 characters',
+            'any.required': 'Last name is required',
+        }),
+
+    department: Joi.string()
+        .min(2)
+        .max(100)
+        .trim()
+        .required()
+        .messages({
+            'string.min': 'Department must be at least 2 characters long',
+            'string.max': 'Department cannot exceed 100 characters',
+            'any.required': 'Department is required',
+        }),
+
+    position: Joi.string()
+        .min(2)
+        .max(100)
+        .trim()
+        .required()
+        .messages({
+            'string.min': 'Position must be at least 2 characters long',
+            'string.max': 'Position cannot exceed 100 characters',
+            'any.required': 'Position is required',
+        }),
+
+    contact: Joi.string()
+        .pattern(/^[0-9]{10,15}$/)
+        .required()
+        .messages({
+            'string.pattern.base': 'Contact must be a valid phone number (10–15 digits)',
+            'any.required': 'Contact is required',
+        }),
+
     email: Joi.string()
         .email()
         .lowercase()
@@ -24,10 +65,9 @@ export const createUserSchema = Joi.object({
         }),
 
     password: Joi.string()
-        .min(8) // stronger minimum length
+        .min(8)
         .max(128)
         .pattern(new RegExp('^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[!@#$%^&*]).+$'))
-        // requires uppercase, lowercase, digit, and special character
         .required()
         .messages({
             'string.min': 'Password must be at least 8 characters long',
@@ -42,4 +82,16 @@ export const createUserSchema = Joi.object({
         .messages({
             'any.only': 'Role must be either employee or admin',
         }),
+
+    leaveBalance: Joi.number()
+        .min(0)
+        .default(20)
+        .messages({
+            'number.min': 'Leave balance cannot be negative',
+        }),
+
+    isTrashed: Joi.boolean().default(false),
+    trashedAt: Joi.date().allow(null),
+    isDeleted: Joi.boolean().default(false),
+    deletedAt: Joi.date().allow(null),
 });
