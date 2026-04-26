@@ -16,7 +16,7 @@ export const getEmployeeById = async(req, res) => {
             });
         }
 
-        const user = await User.findOne({ _id: id, isDeleted: false, isTrashed: false })
+        const user = await User.findOne({ _id: id, isTrashed: false })
             .select('-password');
         if (!user) {
             return res.status(404).json({
@@ -39,7 +39,6 @@ export const getMyLeaves = async(req, res) => {
         const leaves = await Leave.find({
                 employee: req.user.id,
                 isTrashed: false,
-                isDeleted: false,
             })
             .sort({ createdAt: -1 })
             .populate('employee', 'name lastName department position contact email role')
@@ -57,7 +56,7 @@ export const createLeave = [
     async(req, res) => {
         try {
             const employee = await User.findById(req.user.id);
-            if (!employee || employee.isDeleted || employee.isTrashed) {
+            if (!employee || employee.isTrashed) {
                 return res.status(404).json({
                     success: false,
                     statusCode: 404,
@@ -65,7 +64,6 @@ export const createLeave = [
                 });
             }
 
-            // FIX: Only grab the number
             const { duration } = calculateLeaveDays(req.body.startDate, req.body.endDate);
 
             if (employee.leaveBalance < duration) {
@@ -81,10 +79,8 @@ export const createLeave = [
                 employee: req.user.id,
                 employeeName: employee.name,
                 employeeLastName: employee.lastName,
-                duration, // ✅ now a number
+                duration,
                 status: 'pending',
-                isDeleted: false,
-                deletedAt: null,
                 isTrashed: false,
                 trashedAt: null,
             });
@@ -122,7 +118,6 @@ export const cancelLeave = async(req, res) => {
             _id: req.params.id,
             employee: req.user.id,
             isTrashed: false,
-            isDeleted: false,
         });
 
         if (!leave) {
@@ -160,13 +155,12 @@ export const cancelLeave = async(req, res) => {
     }
 };
 
-// === SOFT DELETE & RESTORE LEAVES (Employee) ===
-export const softDeleteMyLeave = async(req, res) => {
+// === TRASH & RESTORE LEAVES (Employee) ===
+export const trashMyLeave = async(req, res) => {
     try {
         const leave = await Leave.findOne({
             _id: req.params.id,
             employee: req.user.id,
-            isDeleted: false,
             isTrashed: false,
         });
 
@@ -174,26 +168,26 @@ export const softDeleteMyLeave = async(req, res) => {
             return res.status(404).json({
                 success: false,
                 statusCode: 404,
-                message: 'Leave not found or already deleted',
+                message: 'Leave not found or already trashed',
             });
         }
 
-        leave.isDeleted = true;
-        leave.deletedAt = new Date();
+        leave.isTrashed = true;
+        leave.trashedAt = new Date();
         await leave.save();
 
         res.json({
             success: true,
             statusCode: 200,
-            message: 'Leave soft-deleted successfully',
+            message: 'Leave moved to trash successfully',
             leave,
         });
     } catch (err) {
-        console.error('Error soft-deleting leave:', err.message);
+        console.error('Error trashing leave:', err.message);
         res.status(500).json({
             success: false,
             statusCode: 500,
-            message: 'Server error while soft-deleting leave',
+            message: 'Server error while trashing leave',
         });
     }
 };
@@ -203,19 +197,19 @@ export const restoreMyLeave = async(req, res) => {
         const leave = await Leave.findOne({
             _id: req.params.id,
             employee: req.user.id,
-            isDeleted: true,
+            isTrashed: true,
         });
 
         if (!leave) {
             return res.status(404).json({
                 success: false,
                 statusCode: 404,
-                message: 'Leave not found or not deleted',
+                message: 'Leave not found or not trashed',
             });
         }
 
-        leave.isDeleted = false;
-        leave.deletedAt = null;
+        leave.isTrashed = false;
+        leave.trashedAt = null;
         await leave.save();
 
         res.json({

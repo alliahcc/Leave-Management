@@ -3,6 +3,7 @@ import {
     login,
     getMe,
     changePassword,
+    logout
 } from '../controllers/auth.controller.js';
 import authMiddleware from '../middleware/auth.middleware.js';
 
@@ -10,6 +11,9 @@ const router = Router();
 
 // === AUTHENTICATION ===
 router.post('/login', login);
+
+// === LOGOUT ===
+router.post('/logout', authMiddleware, logout);
 
 // === USER PROFILE ===
 router.get('/me', authMiddleware, getMe);

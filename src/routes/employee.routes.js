@@ -5,8 +5,7 @@ import {
     getMyLeaves,
     createLeave,
     cancelLeave,
-    // new handlers for soft-delete/restore
-    softDeleteMyLeave,
+    trashMyLeave,
     restoreMyLeave,
 } from '../controllers/employee.controller.js';
 
@@ -25,7 +24,7 @@ router.post('/leaves', createLeave);
 router.patch('/leaves/:id/cancel', cancelLeave);
 
 // Soft-delete a leave (employee can move their own leave to trash)
-router.patch('/leaves/:id/soft-delete', softDeleteMyLeave);
+router.patch('/leaves/:id/trash', trashMyLeave);
 
 // Restore a soft-deleted leave
 router.patch('/leaves/:id/restore', restoreMyLeave);

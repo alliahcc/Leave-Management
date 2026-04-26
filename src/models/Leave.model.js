@@ -6,8 +6,8 @@ const leaveSchema = new mongoose.Schema({
         ref: 'User',
         required: true,
     },
-    employeeName: { type: String, required: true, trim: true }, // Added
-    employeeLastName: { type: String, required: true, trim: true }, // Added
+    employeeName: { type: String, required: true, trim: true },
+    employeeLastName: { type: String, required: true, trim: true },
 
     leaveType: {
         type: String,
@@ -17,23 +17,23 @@ const leaveSchema = new mongoose.Schema({
     },
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },
-    duration: { type: Number, required: true }, // Added
+    duration: { type: Number, required: true },
     reason: { type: String, required: true, trim: true },
     status: {
         type: String,
         enum: ['pending', 'approved', 'rejected', 'cancelled'],
         default: 'pending',
     },
+    remarks: { type: String, trim: true, default: '' },
+
+    // Trash flow only
     isTrashed: { type: Boolean, default: false },
     trashedAt: { type: Date, default: null },
-    isDeleted: { type: Boolean, default: false }, // Added
-    deletedAt: { type: Date, default: null }, // Added
 }, { timestamps: true });
 
 // Indexes
 leaveSchema.index({ employee: 1, status: 1 });
 leaveSchema.index({ isTrashed: 1 });
-leaveSchema.index({ isDeleted: 1 }); // Added
 
 // Virtual: leaveDays
 leaveSchema.virtual('leaveDays').get(function() {
@@ -46,7 +46,6 @@ leaveSchema.virtual('leaveDays').get(function() {
 
 // Pre-save validation
 leaveSchema.pre('save', async function() {
-    // Validate date range
     if (this.endDate < this.startDate) {
         throw new Error('End date cannot be before start date');
     }

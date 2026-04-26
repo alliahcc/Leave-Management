@@ -127,6 +127,7 @@ npm start     # production
 - `POST /admin/users` → Create new user  
 - `GET /admin/employees` → Get all employees  
 - `GET /admin/stats` → Get admin statistics  
+- `PATCH /admin/employees/{id}` → Update employee details 
 - `PATCH /admin/employees/{id}/remove` → Soft delete employee  
 - `PATCH /admin/employees/{id}/restore` → Restore employee  
 - `DELETE /admin/employees/{id}/permanent` → Permanently delete employee  

@@ -2,11 +2,15 @@ import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 
 const userSchema = new mongoose.Schema({
+    employeeId: {
+        type: String,
+        unique: true,
+    },
     name: { type: String, required: true, trim: true },
-    lastName: { type: String, required: true, trim: true }, // Added
-    department: { type: String, required: true, trim: true }, // Added
-    position: { type: String, required: true, trim: true }, // Added
-    contact: { type: String, required: true, trim: true }, // Added
+    lastName: { type: String, required: true, trim: true },
+    department: { type: String, required: true, trim: true },
+    position: { type: String, required: true, trim: true },
+    contact: { type: String, required: true, trim: true },
 
     email: {
         type: String,
@@ -30,22 +34,22 @@ const userSchema = new mongoose.Schema({
         default: 20,
         min: 0,
     },
-    isTrashed: { type: Boolean, default: false }, // Added
-    trashedAt: { type: Date, default: null }, // Added
-    isDeleted: { type: Boolean, default: false },
-    deletedAt: { type: Date, default: null },
+
+    // Trash flow only
+    isTrashed: { type: Boolean, default: false },
+    trashedAt: { type: Date, default: null },
 }, { timestamps: true });
 
 // Indexes
-userSchema.index({ role: 1, isDeleted: 1 });
-userSchema.index({ isTrashed: 1 }); // Added
+userSchema.index({ role: 1 });
+userSchema.index({ isTrashed: 1 });
 
 // Virtuals
 userSchema.virtual('isActive').get(function() {
-    return !this.isDeleted;
+    return !this.isTrashed;
 });
 
-// Pre-save: normalize email + hash password
+// Pre-save: normalize email, hash password, and generate employeeId
 userSchema.pre('save', async function() {
     if (this.email) {
         this.email = this.email.toLowerCase().trim();
@@ -55,9 +59,23 @@ userSchema.pre('save', async function() {
         const saltRounds = 12;
         this.password = await bcrypt.hash(this.password, saltRounds);
     }
+
+    if (!this.employeeId) {
+        const lastUser = await mongoose.model('User')
+            .findOne({}, {}, { sort: { createdAt: -1 } });
+
+        let nextNumber = 1;
+        if (lastUser && lastUser.employeeId) {
+            const lastNumber = parseInt(lastUser.employeeId.replace('EMP', ''), 10);
+            nextNumber = lastNumber + 1;
+        }
+
+        this.employeeId = `EMP${String(nextNumber).padStart(5, '0')}`;
+    }
 });
 
-// Method (optional)
+
+// Method
 userSchema.methods.comparePassword = async function(candidatePassword) {
     return bcrypt.compare(candidatePassword, this.password);
 };

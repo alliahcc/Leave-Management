@@ -5,18 +5,16 @@ import {
     createUser,
     getAllEmployees,
     getAdminStats,
-    softDeleteEmployee,
+    updateEmployee,
+    trashEmployee,
     restoreEmployee,
-    permanentDeleteEmployee,
+    getTrashedEmployees,
     getAllLeaves,
     updateLeaveStatus,
     trashLeave,
     restoreLeave,
-    permanentDeleteLeave,
+    getTrashedLeaves,
     viewLeaveRequestDetail,
-    // new handlers for soft-delete/restore employees and leaves
-    softDeleteLeave,
-    restoreSoftDeletedLeave,
 } from '../controllers/admin.controller.js';
 
 const router = Router();
@@ -29,35 +27,33 @@ router.post('/users', createUser);
 router.get('/employees', getAllEmployees);
 router.get('/stats', getAdminStats);
 
-// Soft-delete employee (mark isDeleted + deletedAt)
-router.patch('/employees/:id/remove', softDeleteEmployee);
+// Update employee details
+router.patch("/employees/:id", updateEmployee);
 
-// Restore employee (reset isDeleted + deletedAt)
+// Move employee to trash
+router.patch("/employees/:id/trash", trashEmployee);
+
+// Restore employee from trash
 router.patch('/employees/:id/restore', restoreEmployee);
 
-// Permanently delete employee
-router.delete('/employees/:id/permanent', permanentDeleteEmployee);
+// Get trashed employees
+router.get('/employees/trashed', getTrashedEmployees);
 
 // === LEAVE MANAGEMENT ===
 router.get('/leaves', getAllLeaves);
+
+// Get trashed leaves
+router.get('/leaves/trashed', getTrashedLeaves);
+
 router.get('/leaves/:id', viewLeaveRequestDetail);
 
 // Update leave status (approve/reject/cancel)
 router.patch('/leaves/:id/status', updateLeaveStatus);
 
-// Move leave to trash (isTrashed + trashedAt)
+// Move leave to trash
 router.patch('/leaves/:id/trash', trashLeave);
 
 // Restore leave from trash
 router.patch('/leaves/:id/restore', restoreLeave);
-
-// Soft-delete leave (isDeleted + deletedAt)
-router.patch('/leaves/:id/soft-delete', softDeleteLeave);
-
-// Restore soft-deleted leave
-router.patch('/leaves/:id/restore-soft', restoreSoftDeletedLeave);
-
-// Permanently delete leave
-router.delete('/leaves/:id/permanent', permanentDeleteLeave);
 
 export default router;

@@ -10,7 +10,7 @@ const seedAdmin = async() => {
 
         const existingAdmin = await User.findOne({ email: 'aljun.dalman@neu.edu.ph' });
         if (existingAdmin) {
-            console.log('✅ Admin already exists');
+            console.log(`✅ Admin already exists with employeeId: ${existingAdmin.employeeId}`);
             return;
         }
 
@@ -26,12 +26,13 @@ const seedAdmin = async() => {
             leaveBalance: 20,
             isTrashed: false,
             trashedAt: null,
-            isDeleted: false,
-            deletedAt: null,
         });
 
-        await adminUser.save();
-        console.log('✅ Admin seeded successfully with password: Admin123');
+        await adminUser.save(); // ✅ triggers pre-save hook to generate employeeId
+
+        console.log(
+            `✅ Admin seeded successfully with employeeId: ${adminUser.employeeId}, email: ${adminUser.email}, password: Admin123`
+        );
     } catch (err) {
         console.error('❌ Error seeding admin:', err.message);
     } finally {

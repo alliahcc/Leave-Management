@@ -13,8 +13,7 @@ export const login = [
 
             const user = await User.findOne({
                 email: email.toLowerCase().trim(),
-                isDeleted: false,
-                isTrashed: false,
+                isTrashed: false, // ✅ only check trash
             });
 
             if (!user) {
@@ -31,14 +30,6 @@ export const login = [
                     success: false,
                     statusCode: 401,
                     message: 'Invalid credentials',
-                });
-            }
-
-            if (!user.role || !['admin', 'employee'].includes(user.role.toLowerCase())) {
-                return res.status(401).json({
-                    success: false,
-                    statusCode: 401,
-                    message: 'Unauthorized: invalid or missing user role',
                 });
             }
 
@@ -63,8 +54,6 @@ export const login = [
                     leaveBalance: user.leaveBalance,
                     isTrashed: user.isTrashed,
                     trashedAt: user.trashedAt,
-                    isDeleted: user.isDeleted,
-                    deletedAt: user.deletedAt,
                     createdAt: user.createdAt,
                 },
             });
@@ -78,18 +67,41 @@ export const login = [
         }
     },
 ];
+// === LOGOUT ===
+export const logout = async(req, res) => {
+    try {
+        // If you are using token blacklisting, you can store the token in a blacklist here.
+        // Example: Blacklist.add(req.token);
+
+        res.json({
+            success: true,
+            statusCode: 200,
+            message: 'Logout successful',
+        });
+    } catch (err) {
+        console.error('Error during logout:', err.message);
+        res.status(500).json({
+            success: false,
+            statusCode: 500,
+            message: 'Server error while logging out',
+        });
+    }
+};
 
 // === GET CURRENT USER ===
 export const getMe = async(req, res) => {
     try {
         const user = await User.findById(req.user.id).select('-password');
-        if (!user || user.isDeleted || user.isTrashed) {
+
+        // Only check if user exists and is not trashed
+        if (!user || user.isTrashed) {
             return res.status(404).json({
                 success: false,
                 statusCode: 404,
                 message: 'User not found',
             });
         }
+
         res.json({ success: true, statusCode: 200, user });
     } catch (err) {
         console.error('Error fetching user profile:', err.message);
@@ -107,7 +119,9 @@ export const changePassword = [
     async(req, res) => {
         try {
             const user = await User.findById(req.user.id);
-            if (!user || user.isDeleted || user.isTrashed) {
+
+            // ✅ Only check if user exists and is not trashed
+            if (!user || user.isTrashed) {
                 return res.status(404).json({
                     success: false,
                     statusCode: 404,
@@ -124,7 +138,8 @@ export const changePassword = [
                 });
             }
 
-            user.password = req.body.newPassword; // pre-save will hash it
+            // Pre-save hook will hash the new password
+            user.password = req.body.newPassword;
             await user.save();
 
             res.json({
